@@ -33,6 +33,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5") // JSON serialization
@@ -65,37 +66,38 @@ tasks.withType<Test> {
 
 // ----------------- Docker start task -----------------
 
-tasks.register<Exec>("startDocker") {
-    group = "docker"
-    description = "Starts Postgres via Docker Compose if not running"
-
-    doFirst {
-        val isRunning = try {
-            Socket("localhost", 5432).use { true }
-        } catch (_: Exception) {
-            false
-        }
-
-        if (!isRunning) {
-            println("Starting Postgres container via Docker Compose...")
-            commandLine("docker", "compose", "up", "-d", "postgres")
-        } else {
-            println("Postgres is already running on localhost:5432")
-            commandLine("echo", "Skipping docker compose, already running")
-        }
-    }
-
+tasks.register("startDocker") {
     doLast {
-        println("Waiting for Postgres to be ready...")
-        exec {
-            commandLine(
-                "bash", "-c",
-                "until docker exec ecom-postgres pg_isready -U postgres >/dev/null 2>&1; do sleep 1; done"
-            )
+        val postgresRunning = exec {
+            isIgnoreExitValue = true
+            commandLine("bash", "-c", "docker ps --filter 'name=ecom-postgres' --filter 'status=running' -q")
+        }.exitValue == 0
+
+        if (!postgresRunning) {
+            println("Starting Postgres...")
+            exec { commandLine("docker", "compose", "up", "-d", "postgres") }
+        } else {
+            println("Postgres already running.")
         }
-        println("Postgres is ready!")
+
+        val mongoRunning = exec {
+            isIgnoreExitValue = true
+            commandLine("bash", "-c", "docker ps --filter 'name=ecom-mongo' --filter 'status=running' -q")
+        }.exitValue == 0
+
+        if (!mongoRunning) {
+            println("Starting MongoDB...")
+            exec { commandLine("docker", "compose", "up", "-d", "mongodb") }
+        } else {
+            println("MongoDB already running.")
+        }
     }
 }
+
+tasks.named("bootRun") {
+    dependsOn("startDocker")
+}
+
 
 tasks.named("bootRun") {
     dependsOn("startDocker")
