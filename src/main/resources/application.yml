@@ -13,3 +13,7 @@ spring:
   jackson:
     serialization:
       indent_output: true
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: yourpassword

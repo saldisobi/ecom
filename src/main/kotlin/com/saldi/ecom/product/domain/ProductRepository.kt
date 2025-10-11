@@ -4,4 +4,5 @@ interface ProductRepository {
     fun save(product: Product): Product
     fun findById(id: String): Product?
     fun findByCategory(category: String): List<Product>
+    fun getAllProducts(): List<Product>
 }

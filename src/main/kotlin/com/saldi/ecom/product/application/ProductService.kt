@@ -11,4 +11,5 @@ class ProductService(
     fun addProduct(product: Product): Product = productRepository.save(product)
     fun getProduct(id: String): Product? = productRepository.findById(id)
     fun getProductsByCategory(category: String): List<Product> = productRepository.findByCategory(category)
+    fun getAllProducts()  = productRepository.getAllProducts()
 }
